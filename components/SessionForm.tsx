@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PokerSession, PlayerEntry } from '../types';
-import { Plus, Trash2, UserPlus, Calculator } from 'lucide-react';
+import { Plus, Trash2, UserPlus } from 'lucide-react';
 import { getUniquePlayerNames } from '../services/storage';
 
 interface SessionFormProps {
@@ -23,7 +23,8 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSave, onCancel, init
   const [availableNames, setAvailableNames] = useState<string[]>([]);
 
   useEffect(() => {
-    setAvailableNames(getUniquePlayerNames());
+    // Load player names async
+    getUniquePlayerNames().then(names => setAvailableNames(names));
     
     if (initialData) {
       setDate(initialData.date.split('T')[0]);

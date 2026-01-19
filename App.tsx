@@ -2,37 +2,68 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell 
 } from 'recharts';
-import { Plus, LayoutDashboard, History, Users, Trash2, Edit, TrendingUp } from 'lucide-react';
+import { Plus, LayoutDashboard, History, Users, Trash2, Edit, TrendingUp, Loader2 } from 'lucide-react';
 import { PokerSession, ViewState, Period, PlayerStat } from './types';
 import * as Storage from './services/storage';
 import { SessionForm } from './components/SessionForm';
+import { AiCoach } from './components/AiCoach';
+import { CloudSync } from './components/CloudSync';
+import { StatsCard } from './components/StatsCard';
 
 const App: React.FC = () => {
   const [sessions, setSessions] = useState<PokerSession[]>([]);
   const [view, setView] = useState<ViewState>(ViewState.DASHBOARD);
   const [period, setPeriod] = useState<Period>('all');
   const [editingSession, setEditingSession] = useState<PokerSession | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    setSessions(Storage.getSessions());
-  }, []);
-
-  const handleSaveSession = (session: PokerSession) => {
-    if (editingSession) {
-      const updated = Storage.updateSession(session);
-      setSessions(updated);
-    } else {
-      const updated = Storage.saveSession(session);
-      setSessions(updated);
+  // Function to reload data
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      const data = await Storage.loadSessions();
+      setSessions(data);
+    } catch (e) {
+      console.error("Failed to load sessions", e);
+    } finally {
+      setIsLoading(false);
     }
-    setEditingSession(undefined);
-    setView(ViewState.HISTORY);
   };
 
-  const handleDeleteSession = (id: string) => {
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const handleSaveSession = async (session: PokerSession) => {
+    setIsLoading(true);
+    try {
+      if (editingSession) {
+        const updated = await Storage.updateSessionData(session);
+        setSessions(updated);
+      } else {
+        const updated = await Storage.addSession(session);
+        setSessions(updated);
+      }
+      setEditingSession(undefined);
+      setView(ViewState.HISTORY);
+    } catch (error) {
+      alert("Lỗi khi lưu dữ liệu. Vui lòng kiểm tra kết nối.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteSession = async (id: string) => {
     if (window.confirm('Bạn có chắc muốn xóa ván đấu này không? Dữ liệu không thể phục hồi.')) {
-      const updated = Storage.deleteSession(id);
-      setSessions(updated);
+      setIsLoading(true);
+      try {
+        const updated = await Storage.removeSession(id);
+        setSessions(updated);
+      } catch (e) {
+        alert("Lỗi khi xóa dữ liệu.");
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -95,6 +126,19 @@ const App: React.FC = () => {
      return filteredSessions.reduce((sum, s) => sum + s.players.reduce((pSum, p) => pSum + p.buyIn, 0), 0);
   }, [filteredSessions]);
 
+  const statsSummary = useMemo(() => {
+    // Basic stats for user context (assuming user is tracking for house/group)
+    const totalProfit = 0; // In a ledger app, sum is usually 0 (minus rake).
+    // Let's calculate total Rake/Diff instead? Or maybe just Volume.
+    // For now, we pass basic info to AI.
+    return {
+      totalProfit: totalVolume, // Just sending volume as 'profit' placeholder for structure
+      hourlyRate: 0,
+      totalSessions: filteredSessions.length,
+      winRate: 0
+    };
+  }, [filteredSessions, totalVolume]);
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(val);
   };
@@ -126,14 +170,8 @@ const App: React.FC = () => {
 
       {/* Overview Cards */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-          <div className="text-gray-400 text-xs uppercase font-bold">Tổng Ván Đấu</div>
-          <div className="text-2xl font-bold text-white mt-1">{filteredSessions.length}</div>
-        </div>
-        <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-          <div className="text-gray-400 text-xs uppercase font-bold">Tổng Tiền (Volume)</div>
-          <div className="text-xl font-bold text-blue-400 mt-1 truncate">{formatShortCurrency(totalVolume)}</div>
-        </div>
+        <StatsCard title="Tổng Ván Đấu" value={filteredSessions.length.toString()} />
+        <StatsCard title="Tổng Volume" value={formatShortCurrency(totalVolume)} color="border-blue-500/30" />
       </div>
 
       {/* Leaderboard Chart */}
@@ -187,6 +225,10 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 mt-4">
+        <AiCoach sessions={sessions} stats={statsSummary} />
       </div>
     </div>
   );
@@ -304,6 +346,13 @@ const App: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-50 font-sans max-w-md mx-auto shadow-2xl overflow-hidden relative">
       
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center">
+          <Loader2 className="animate-spin text-blue-500" size={48} />
+        </div>
+      )}
+
       {/* Content Area */}
       <div className="h-screen overflow-y-auto">
         {view === ViewState.DASHBOARD && renderDashboard()}
@@ -357,6 +406,8 @@ const App: React.FC = () => {
             <History size={24} strokeWidth={view === ViewState.HISTORY ? 2.5 : 2} />
             <span className="text-[10px] mt-1 font-medium">Lịch sử</span>
           </button>
+
+          <CloudSync onSyncChange={loadData} />
         </div>
       )}
     </div>
