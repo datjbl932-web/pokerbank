@@ -4,7 +4,8 @@ import { supabase, TABLE_NAME } from './supabase';
 const STORAGE_KEY = 'poker_ledger_data_v2';
 const SYNC_KEY_STORAGE = 'poker_sync_user_key';
 
-// Helper to get local data
+// --- LOCAL STORAGE HELPERS ---
+
 const getLocalSessions = (): PokerSession[] => {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
@@ -15,7 +16,6 @@ const getLocalSessions = (): PokerSession[] => {
   }
 };
 
-// Helper to save local data
 const saveLocalSessions = (sessions: PokerSession[]) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
 };
@@ -30,7 +30,7 @@ export const getSyncKey = (): string | null => {
 // 2. Set Sync Key
 export const setSyncKey = (key: string) => {
   if (key) {
-    localStorage.setItem(SYNC_KEY_STORAGE, key);
+    localStorage.setItem(SYNC_KEY_STORAGE, key.trim());
   } else {
     localStorage.removeItem(SYNC_KEY_STORAGE);
   }
@@ -43,6 +43,7 @@ export const loadSessions = async (): Promise<PokerSession[]> => {
   // Mode 1: Cloud (if Key exists and Supabase is configured)
   if (syncKey && supabase) {
     try {
+      // Select data column where user_key matches
       const { data, error } = await supabase
         .from(TABLE_NAME)
         .select('data')
@@ -51,12 +52,18 @@ export const loadSessions = async (): Promise<PokerSession[]> => {
 
       if (error) throw error;
       
-      // Map back to PokerSession array
-      return data.map((row: any) => row.data) || [];
+      // Map back to PokerSession array, ensure data is not null
+      const sessions = data?.map((row: any) => row.data) || [];
+      
+      // Optional: Sync back to local storage for offline backup
+      saveLocalSessions(sessions);
+      
+      return sessions;
     } catch (err) {
       console.error("Lỗi tải từ Supabase:", err);
-      // Fallback: return empty or notify error? For now return empty to avoid mixing data
-      return [];
+      // Fallback to local if cloud fails, or return empty? 
+      // Current strategy: If cloud fails, try to show local but warn user (UI handles warning via empty list usually)
+      return getLocalSessions(); 
     }
   }
 
@@ -69,19 +76,19 @@ export const addSession = async (session: PokerSession): Promise<PokerSession[]>
   const syncKey = getSyncKey();
 
   if (syncKey && supabase) {
-    // Cloud Save
+    // Cloud Save: Use upsert to handle potential duplicates gracefully
     const { error } = await supabase
       .from(TABLE_NAME)
-      .insert([{ 
+      .upsert({ 
         user_key: syncKey, 
-        session_id: session.id, // Critical for identifying record later
+        session_id: session.id,
         data: session,
-        created_at: new Date().toISOString()
-      }]);
+        created_at: session.date
+      }, { onConflict: 'user_key, session_id' }); // Requires unique constraint on DB side, but basic insert works too if no constraint
     
     if (error) {
       console.error("Lỗi lưu Supabase:", error);
-      throw new Error("Không thể lưu lên đám mây.");
+      throw new Error("Không thể lưu lên đám mây. Vui lòng kiểm tra kết nối.");
     }
     
     return loadSessions();
@@ -99,29 +106,22 @@ export const updateSessionData = async (updatedSession: PokerSession): Promise<P
   const syncKey = getSyncKey();
 
   if (syncKey && supabase) {
-    // Cloud Update strategy: Delete old by session_id and user_key, then Insert new
-    
-    const { error: delError } = await supabase
+    // Cloud Update: Directly update the row identified by user_key and session_id
+    const { error } = await supabase
         .from(TABLE_NAME)
-        .delete()
+        .update({ 
+            data: updatedSession,
+            created_at: updatedSession.date // Update timestamp just in case date changed
+        })
         .eq('user_key', syncKey)
         .eq('session_id', updatedSession.id);
         
-    if (delError) console.error("Error deleting old session during update", delError);
-
-    const { error: insError } = await supabase
-        .from(TABLE_NAME)
-        .insert([{
-            user_key: syncKey,
-            session_id: updatedSession.id,
-            data: updatedSession,
-            created_at: updatedSession.date
-        }]);
-        
-    if (insError) throw insError;
+    if (error) {
+        console.error("Error updating session", error);
+        throw error;
+    }
     
     return loadSessions();
-
   } else {
     // Local Update
     const current = getLocalSessions();
@@ -143,7 +143,10 @@ export const removeSession = async (id: string): Promise<PokerSession[]> => {
         .eq('user_key', syncKey)
         .eq('session_id', id);
 
-    if (error) throw error;
+    if (error) {
+        console.error("Error deleting session", error);
+        throw error;
+    }
     return loadSessions();
   } else {
     // Local Delete
@@ -154,10 +157,14 @@ export const removeSession = async (id: string): Promise<PokerSession[]> => {
   }
 };
 
-// Helper to get unique players (from current memory is fine, or re-fetch)
+// Helper to get unique players
 export const getUniquePlayerNames = async (): Promise<string[]> => {
     const sessions = await loadSessions();
     const names = new Set<string>();
-    sessions.forEach(s => s.players.forEach(p => names.add(p.name)));
+    sessions.forEach(s => s.players.forEach(p => {
+        if (p.name && p.name.trim()) {
+            names.add(p.name.trim());
+        }
+    }));
     return Array.from(names).sort();
 };

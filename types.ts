@@ -20,6 +20,7 @@ export interface PlayerStat {
   totalCashOut: number;
   sessionsPlayed: number;
   lastPlayed: string;
+  avatar?: string; // Emoji char
 }
 
 export interface StatsSummary {
@@ -35,5 +36,6 @@ export enum ViewState {
   DASHBOARD = 'DASHBOARD',
   PLAYERS = 'PLAYERS',
   ADD_SESSION = 'ADD_SESSION',
-  HISTORY = 'HISTORY'
+  HISTORY = 'HISTORY',
+  PLAYER_DETAIL = 'PLAYER_DETAIL'
 }

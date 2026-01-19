@@ -80,8 +80,8 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSave, onCancel, init
   return (
     <div className="p-4 animate-fade-in pb-20">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white">{initialData ? 'Sửa Ván Đấu' : 'Thêm Ván Mới'}</h2>
-        <div className={`px-3 py-1 rounded-full text-sm font-bold ${Math.abs(diff) < 1000 ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{initialData ? 'Sửa Ván Đấu' : 'Thêm Ván Mới'}</h2>
+        <div className={`px-3 py-1 rounded-full text-sm font-bold ${Math.abs(diff) < 1000 ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400'}`}>
           Lệch: {diff.toLocaleString('vi-VN')}
         </div>
       </div>
@@ -89,37 +89,37 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSave, onCancel, init
       <form onSubmit={handleSubmit} className="space-y-6">
         
         {/* General Info */}
-        <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-4">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm space-y-4 transition-colors">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Ngày chơi</label>
+              <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Ngày chơi</label>
               <input
                 type="date"
                 required
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded-lg p-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">Thời lượng (phút)</label>
+              <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Thời lượng (phút)</label>
               <input
                 type="number"
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
                 placeholder="120"
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded-lg p-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-400 mb-1">Địa điểm</label>
+            <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Địa điểm</label>
             <input
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="VD: Nhà Tuấn, Casino..."
-              className="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded-lg p-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
             />
           </div>
         </div>
@@ -127,8 +127,8 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSave, onCancel, init
         {/* Players List */}
         <div className="space-y-3">
           <div className="flex justify-between items-center">
-            <label className="text-lg font-bold text-white flex items-center gap-2">
-              <UserPlus size={20} className="text-blue-400"/> Danh sách người chơi
+            <label className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <UserPlus size={20} className="text-blue-500"/> Danh sách người chơi
             </label>
             <button
               type="button"
@@ -146,7 +146,7 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSave, onCancel, init
           {players.map((player, index) => {
             const pProfit = (Number(player.cashOut) || 0) - (Number(player.buyIn) || 0);
             return (
-              <div key={index} className="bg-slate-800 p-3 rounded-xl border border-slate-700 relative group animate-fade-in">
+              <div key={index} className="bg-white dark:bg-slate-800 p-3 rounded-xl border border-gray-200 dark:border-slate-700 relative group animate-fade-in shadow-sm transition-colors">
                 <div className="flex gap-3 mb-2">
                   <div className="flex-1">
                     <input
@@ -155,13 +155,13 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSave, onCancel, init
                       placeholder="Tên người chơi"
                       value={player.name}
                       onChange={(e) => updatePlayer(index, 'name', e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white font-bold placeholder-gray-600 focus:border-blue-500 outline-none"
+                      className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded-lg p-2 text-slate-900 dark:text-white font-bold placeholder-gray-400 dark:placeholder-gray-600 focus:border-blue-500 outline-none transition-colors"
                     />
                   </div>
                   <button 
                     type="button"
                     onClick={() => handleRemovePlayer(index)}
-                    className="p-2 text-red-400 hover:bg-slate-700 rounded-lg"
+                    className="p-2 text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-slate-700 rounded-lg"
                   >
                     <Trash2 size={20} />
                   </button>
@@ -175,7 +175,7 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSave, onCancel, init
                       placeholder="0"
                       value={player.buyIn || ''}
                       onChange={(e) => updatePlayer(index, 'buyIn', parseFloat(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-red-300 font-mono text-right focus:border-red-500 outline-none"
+                      className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded-lg p-2 text-red-600 dark:text-red-300 font-mono text-right focus:border-red-500 outline-none transition-colors"
                     />
                   </div>
                   <div>
@@ -185,12 +185,12 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSave, onCancel, init
                       placeholder="0"
                       value={player.cashOut || ''}
                       onChange={(e) => updatePlayer(index, 'cashOut', parseFloat(e.target.value))}
-                      className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-green-300 font-mono text-right focus:border-green-500 outline-none"
+                      className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded-lg p-2 text-green-600 dark:text-green-300 font-mono text-right focus:border-green-500 outline-none transition-colors"
                     />
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-gray-500 mb-1">Thắng/Thua</div>
-                    <div className={`font-bold font-mono text-lg ${pProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    <div className={`font-bold font-mono text-lg ${pProfit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                       {pProfit > 0 ? '+' : ''}{pProfit.toLocaleString('vi-VN')}
                     </div>
                   </div>
@@ -201,17 +201,17 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSave, onCancel, init
         </div>
 
         {/* Summary Footer */}
-        <div className="bg-slate-900/90 p-4 rounded-xl border border-slate-700">
-           <div className="flex justify-between text-sm text-gray-400 mb-1">
+        <div className="bg-slate-100 dark:bg-slate-900/90 p-4 rounded-xl border border-gray-200 dark:border-slate-700 transition-colors">
+           <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-1">
               <span>Tổng Buy-in:</span>
-              <span className="text-white">{totalBuyIn.toLocaleString('vi-VN')}</span>
+              <span className="text-slate-900 dark:text-white font-medium">{totalBuyIn.toLocaleString('vi-VN')}</span>
            </div>
-           <div className="flex justify-between text-sm text-gray-400 mb-2">
+           <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-2">
               <span>Tổng Cash-out:</span>
-              <span className="text-white">{totalCashOut.toLocaleString('vi-VN')}</span>
+              <span className="text-slate-900 dark:text-white font-medium">{totalCashOut.toLocaleString('vi-VN')}</span>
            </div>
            {Math.abs(diff) > 0 && (
-             <div className="flex justify-between text-sm font-bold text-yellow-500">
+             <div className="flex justify-between text-sm font-bold text-yellow-600 dark:text-yellow-500">
                <span>Chênh lệch (Rake/Lỗi):</span>
                <span>{diff.toLocaleString('vi-VN')}</span>
              </div>
@@ -222,7 +222,7 @@ export const SessionForm: React.FC<SessionFormProps> = ({ onSave, onCancel, init
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-3 px-4 bg-slate-700 text-white rounded-lg font-semibold hover:bg-slate-600 transition-colors"
+            className="flex-1 py-3 px-4 bg-gray-200 dark:bg-slate-700 text-slate-700 dark:text-white rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors"
           >
             Hủy
           </button>
