@@ -10,5 +10,9 @@ export default defineConfig({
   },
   server: {
     port: 3000
+  },
+  define: {
+    // Polyfill process.env to prevent crashes in browser
+    'process.env': {}
   }
 });
