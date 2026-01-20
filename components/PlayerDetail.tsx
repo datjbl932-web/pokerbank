@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PlayerStat, PokerSession } from '../types';
-import { ArrowLeft, Trophy, Calendar, DollarSign, Edit } from 'lucide-react';
+import { ArrowLeft, Trophy, Calendar, DollarSign, Edit, TrendingUp } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { getPlayerRank, AVATARS, RANKS } from '../utils/gameUtils';
 
@@ -55,7 +55,7 @@ export const PlayerDetail: React.FC<PlayerDetailProps> = ({ player, allSessions,
   return (
     <div className="p-4 animate-fade-in pb-20">
       {/* Header */}
-      <button onClick={onBack} className="flex items-center text-gray-500 dark:text-gray-400 mb-4 hover:text-blue-500">
+      <button onClick={onBack} className="flex items-center text-slate-600 dark:text-gray-400 mb-4 hover:text-blue-500 font-medium">
         <ArrowLeft size={20} className="mr-1" /> Quay lại
       </button>
 
@@ -80,7 +80,7 @@ export const PlayerDetail: React.FC<PlayerDetailProps> = ({ player, allSessions,
 
         {showAvatarSelector && (
             <div className="bg-slate-100 dark:bg-slate-900 p-3 rounded-xl mb-4 border border-gray-300 dark:border-slate-600 animate-fade-in">
-                <p className="text-xs text-gray-500 mb-2">Chọn Avatar:</p>
+                <p className="text-xs text-slate-500 dark:text-gray-500 mb-2">Chọn Avatar:</p>
                 <div className="grid grid-cols-8 gap-2">
                     {AVATARS.map(a => (
                         <button key={a} onClick={() => handleAvatarSelect(a)} className="text-xl hover:bg-slate-200 dark:hover:bg-slate-700 rounded p-1">
@@ -96,17 +96,11 @@ export const PlayerDetail: React.FC<PlayerDetailProps> = ({ player, allSessions,
            {rank.icon} {rank.name}
         </div>
         
-        <div className="grid grid-cols-2 gap-4 mt-6">
-            <div className="bg-gray-50 dark:bg-slate-900/50 p-3 rounded-xl">
-                <div className="text-gray-500 text-xs uppercase font-bold">Lợi nhuận</div>
-                <div className={`text-xl font-bold ${player.totalProfit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+        <div className="mt-6 flex justify-center">
+            <div className="bg-gray-50 dark:bg-slate-900/50 p-4 rounded-xl w-full max-w-xs border border-gray-100 dark:border-slate-700">
+                <div className="text-slate-500 dark:text-gray-500 text-xs uppercase font-bold mb-1">Tổng Lợi nhuận</div>
+                <div className={`text-3xl font-bold ${player.totalProfit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {formatCurrency(player.totalProfit)}
-                </div>
-            </div>
-            <div className="bg-gray-50 dark:bg-slate-900/50 p-3 rounded-xl">
-                <div className="text-gray-500 text-xs uppercase font-bold">Số ván</div>
-                <div className="text-xl font-bold text-slate-900 dark:text-white">
-                    {player.sessionsPlayed}
                 </div>
             </div>
         </div>
@@ -115,8 +109,8 @@ export const PlayerDetail: React.FC<PlayerDetailProps> = ({ player, allSessions,
       {/* Chart */}
       {history.length > 1 && (
       <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm mb-6">
-        <h3 className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold mb-4 flex items-center gap-2">
-            <Trophy size={14} /> Biểu đồ phong độ
+        <h3 className="text-slate-500 dark:text-gray-400 text-xs uppercase font-bold mb-4 flex items-center gap-2">
+            <TrendingUp size={14} /> Biểu đồ Lịch sử Thắng/Thua
         </h3>
         <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -128,11 +122,11 @@ export const PlayerDetail: React.FC<PlayerDetailProps> = ({ player, allSessions,
                         </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#374151" opacity={0.1} />
-                    <XAxis dataKey="date" tick={{fontSize: 10}} stroke="#9ca3af" tickLine={false} axisLine={false} />
+                    <XAxis dataKey="date" tick={{fontSize: 10, fill: '#64748b'}} stroke="#9ca3af" tickLine={false} axisLine={false} />
                     <YAxis hide domain={['auto', 'auto']} />
                     <Tooltip 
                         contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', color: '#f8fafc', borderRadius: '8px' }}
-                        formatter={(value: number) => formatCurrency(value)}
+                        formatter={(value: number) => [formatCurrency(value), "Lãi/Lỗ tích lũy"]}
                         labelStyle={{ color: '#94a3b8' }}
                     />
                     <Area 
@@ -151,12 +145,12 @@ export const PlayerDetail: React.FC<PlayerDetailProps> = ({ player, allSessions,
 
       {/* History List */}
       <h3 className="text-slate-900 dark:text-white font-bold mb-3 flex items-center gap-2">
-         <Calendar size={18} className="text-blue-500" /> Lịch sử chi tiết
+         <Calendar size={18} className="text-blue-500" /> Chi tiết từng ngày
       </h3>
       <div className="space-y-3">
         {history.slice().reverse().map((h, idx) => (
             <div key={idx} className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-gray-200 dark:border-slate-700 flex justify-between items-center shadow-sm">
-                <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">{h.date}</span>
+                <span className="text-slate-600 dark:text-gray-400 text-sm font-medium">{h.date}</span>
                 <span className={`font-mono font-bold ${h.profit >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {h.profit > 0 ? '+' : ''}{formatCurrency(h.profit)}
                 </span>

@@ -30,7 +30,7 @@ export interface StatsSummary {
   winRate: number;
 }
 
-export type Period = 'all' | 'week' | 'month' | 'year';
+export type Period = 'all' | 'week' | 'month' | 'year' | 'custom';
 
 export enum ViewState {
   DASHBOARD = 'DASHBOARD',
