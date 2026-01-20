@@ -1,3 +1,4 @@
+
 export interface PlayerEntry {
   name: string;
   buyIn: number;
@@ -30,12 +31,13 @@ export interface StatsSummary {
   winRate: number;
 }
 
-export type Period = 'all' | 'week' | 'month' | 'year' | 'custom';
+export type Period = 'today' | 'yesterday' | 'all' | 'week' | 'month' | 'year' | 'custom';
 
 export enum ViewState {
   DASHBOARD = 'DASHBOARD',
   PLAYERS = 'PLAYERS',
   ADD_SESSION = 'ADD_SESSION',
+  QUICK_ADD = 'QUICK_ADD',
   HISTORY = 'HISTORY',
   PLAYER_DETAIL = 'PLAYER_DETAIL'
 }

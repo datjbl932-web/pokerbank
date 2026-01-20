@@ -2,10 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, AreaChart, Area, PieChart, Pie, Legend
 } from 'recharts';
-import { Plus, LayoutDashboard, History, Users, Trash2, Edit, TrendingUp, Loader2, Moon, Sun, ChevronRight, Activity, Calendar, Filter, PieChart as PieChartIcon, LineChart } from 'lucide-react';
+import { Plus, LayoutDashboard, History, Users, Trash2, Edit, TrendingUp, Loader2, Moon, Sun, ChevronRight, Activity, Calendar, Filter, PieChart as PieChartIcon, LineChart, NotebookPen } from 'lucide-react';
 import { PokerSession, ViewState, Period, PlayerStat } from './types';
 import * as Storage from './services/storage';
 import { SessionForm } from './components/SessionForm';
+import { QuickSessionForm } from './components/QuickSessionForm';
 import { CloudSync } from './components/CloudSync';
 import { StatsCard } from './components/StatsCard';
 import { PlayerDetail } from './components/PlayerDetail';
@@ -123,17 +124,33 @@ const App: React.FC = () => {
   // Filter Sessions
   const filteredSessions = useMemo(() => {
     const now = new Date();
-    now.setHours(23, 59, 59, 999);
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
 
     return sessions.filter(s => {
       const d = new Date(s.date);
       
       if (period === 'all') return true;
+
+      if (period === 'today') {
+        return d.getDate() === now.getDate() && 
+               d.getMonth() === now.getMonth() && 
+               d.getFullYear() === now.getFullYear();
+      }
+
+      if (period === 'yesterday') {
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return d.getDate() === yesterday.getDate() && 
+               d.getMonth() === yesterday.getMonth() && 
+               d.getFullYear() === yesterday.getFullYear();
+      }
+
       if (period === 'week') {
         const oneWeekAgo = new Date();
         oneWeekAgo.setDate(now.getDate() - 7);
         oneWeekAgo.setHours(0,0,0,0);
-        return d >= oneWeekAgo && d <= now;
+        return d >= oneWeekAgo && d <= endOfToday;
       }
       if (period === 'month') {
         return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
@@ -159,31 +176,12 @@ const App: React.FC = () => {
   const profitTrendData = useMemo(() => {
     // Sort chronological for cumulative calc
     const sorted = [...filteredSessions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    let runningTotal = 0;
     
     // Group by date to handle multiple sessions in one day
     const map = new Map<string, number>();
     
     sorted.forEach(s => {
         const dateStr = new Date(s.date).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
-        // Calculate session profit (Sum of players cashout - buyin is actually 0 for the house, 
-        // BUT usually this app tracks specific user. 
-        // Since this is a ledger for a group, "Profit" here is ambiguous. 
-        // ASSUMPTION: Based on request, we are tracking "Volume" or "Pot Size" as positive?
-        // OR: Are we tracking a specific Hero? 
-        // OBSERVATION: The app tracks a group ledger (PlayerEntry[]). 
-        // TO MAKE THIS USEFUL: Let's track the "Big Winner's Profit" or "Total Pot".
-        // HOWEVER, traditionally Bankroll apps track "My" profit. 
-        // Since there is no "Me" user selected, let's chart TOTAL VOLUME (Pot Size) for Trend 
-        // OR Let's chart the 'Banker' profit if any? 
-        // RE-EVALUATION: The user asked for "Poker Bankroll". Usually implies personal. 
-        // But the data structure `players` implies a ledger.
-        // Let's visualize TOTAL BUY-IN (Volume) growth for the group, or let's visualize the "Rake" if applicable.
-        // ACTUALLY: Let's go with Total Buy-in Volume for the cumulative graph as a proxy for "Action".
-        // MODIFICATION: Let's assume the user wants to see the "Action" trend.
-        // BETTER YET: Let's graph the top winner's profit of that session to show "Potential".
-        
-        // Revised Strategy: Since it's a ledger, let's show Total Volume (Action) over time.
         const vol = s.players.reduce((sum, p) => sum + (p.buyIn || 0), 0);
         
         if (map.has(dateStr)) {
@@ -203,13 +201,7 @@ const App: React.FC = () => {
     return result;
   }, [filteredSessions]);
 
-  // 2. Win/Loss Distribution (Based on players in the session - General Stats)
-  // Since this is a ledger, let's show: Sessions with Big Pots vs Small Pots OR
-  // Let's try to interpret "Profit" as the diff between Cashout and Buyin (should be 0).
-  // Let's pivot: The user asked for "Lãi/Lỗ". 
-  // If this is a Host managing the game, Lãi/Lỗ might be Rake (not implemented).
-  // If this is a Player tracking their game, they would enter themselves in every session.
-  // CRITICAL FIX: Since we don't know who "Hero" is, let's calculate the 'Winner Count' vs 'Loser Count' across all sessions.
+  // 2. Win/Loss Distribution
   const winLossData = useMemo(() => {
     let winners = 0;
     let losers = 0;
@@ -275,7 +267,6 @@ const App: React.FC = () => {
       return filteredSessions.reduce((sum, s) => sum + (s.durationMinutes || 0), 0) / 60;
   }, [filteredSessions]);
 
-  // Since we don't have a single "Hero", Average Hourly Volume might be a better metric for the dashboard
   const hourlyVolume = totalHours > 0 ? totalVolume / totalHours : 0;
 
   const formatShortCurrency = (val: number) => {
@@ -330,17 +321,23 @@ const App: React.FC = () => {
         <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <TrendingUp className="text-blue-500" size={24} /> Tổng Quan
         </h1>
-        <button onClick={toggleTheme} className="p-2 bg-slate-200 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 transition-colors">
-            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setView(ViewState.QUICK_ADD)} className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg font-bold flex items-center gap-1 text-xs">
+              <NotebookPen size={18} /> Nhập nhanh
+          </button>
+          <button onClick={toggleTheme} className="p-2 bg-slate-200 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 transition-colors">
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
+        </div>
       </div>
 
       <div className="space-y-2">
           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-            <PeriodButton p="all" label="Tất cả" />
+            <PeriodButton p="today" label="Hôm nay" />
+            <PeriodButton p="yesterday" label="Hôm qua" />
             <PeriodButton p="week" label="Tuần này" />
             <PeriodButton p="month" label="Tháng này" />
-            <PeriodButton p="year" label="Năm này" />
+            <PeriodButton p="all" label="Tất cả" />
             <PeriodButton p="custom" label="Tùy chỉnh" />
           </div>
           {period === 'custom' && <CustomDateInput />}
@@ -495,10 +492,11 @@ const App: React.FC = () => {
 
       <div className="space-y-2 mb-4">
           <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-            <PeriodButton p="all" label="Tất cả" />
+            <PeriodButton p="today" label="Hôm nay" />
+            <PeriodButton p="yesterday" label="Hôm qua" />
             <PeriodButton p="week" label="Tuần này" />
             <PeriodButton p="month" label="Tháng này" />
-            <PeriodButton p="year" label="Năm này" />
+            <PeriodButton p="all" label="Tất cả" />
             <PeriodButton p="custom" label="Tùy chỉnh" />
           </div>
           {period === 'custom' && <CustomDateInput />}
@@ -628,6 +626,12 @@ const App: React.FC = () => {
                 onUpdateAvatar={handleUpdateAvatar}
             />
         )}
+        {view === ViewState.QUICK_ADD && (
+            <QuickSessionForm 
+                onSave={handleSaveSession}
+                onCancel={() => setView(ViewState.DASHBOARD)}
+            />
+        )}
         {view === ViewState.ADD_SESSION && (
           <SessionForm 
             onSave={handleSaveSession} 
@@ -641,7 +645,7 @@ const App: React.FC = () => {
         {view === ViewState.HISTORY && renderHistory()}
       </div>
 
-      {(view !== ViewState.ADD_SESSION && view !== ViewState.PLAYER_DETAIL) && (
+      {(view !== ViewState.ADD_SESSION && view !== ViewState.PLAYER_DETAIL && view !== ViewState.QUICK_ADD) && (
         <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-gray-200 dark:border-slate-800 p-2 flex justify-between items-center z-50 transition-colors shadow-[0_-5px_10px_rgba(0,0,0,0.05)]">
           <button 
             onClick={() => setView(ViewState.DASHBOARD)} 
